@@ -1,0 +1,31 @@
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Environment files
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+out/
+tmp/
+
+# Container runtime artifacts
+*.pid
+*.sock
+
+# Local test/output captures
+screenshots/
+artifacts/
