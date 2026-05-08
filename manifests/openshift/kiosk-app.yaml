@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kiosk
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kiosk-browser
+  namespace: kiosk
+---
+# Allow this ServiceAccount to run with anyuid SCC.
+# This avoids runtime permission issues with supervisord/firefox in the current image.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kiosk-browser-anyuid
+  namespace: kiosk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+  - kind: ServiceAccount
+    name: kiosk-browser
+    namespace: kiosk
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fedora-vnc-kiosk
+  namespace: kiosk
+  labels:
+    app: fedora-vnc-kiosk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fedora-vnc-kiosk
+  template:
+    metadata:
+      labels:
+        app: fedora-vnc-kiosk
+    spec:
+      serviceAccountName: kiosk-browser
+      containers:
+        - name: kiosk
+          image: docker.io/gaulzi/fedora-vnc-kiosk:latest
+          imagePullPolicy: Always
+          env:
+            - name: KIOSK_URL
+              value: https://grafana.com
+          ports:
+            - name: vnc
+              containerPort: 5900
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5900
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5900
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fedora-vnc-kiosk
+  namespace: kiosk
+  annotations:
+    metallb.io/address-pool: kiosk-vips
+spec:
+  type: LoadBalancer
+  selector:
+    app: fedora-vnc-kiosk
+  ports:
+    - name: vnc
+      port: 5900
+      protocol: TCP
+      targetPort: 5900

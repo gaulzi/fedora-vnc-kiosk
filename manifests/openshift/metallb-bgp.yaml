@@ -1,0 +1,45 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: kiosk-vips
+  namespace: metallb-system
+spec:
+  addresses:
+    # CHANGE THIS RANGE to free IPs in your network.
+    - 192.168.50.240-192.168.50.250
+---
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: edge-router-peer
+  namespace: metallb-system
+spec:
+  # CHANGE THESE VALUES for your environment.
+  myASN: 64512
+  peerASN: 65001
+  peerAddress: 192.168.50.1
+  peerPort: 179
+  holdTime: 90s
+  keepaliveTime: 30s
+---
+apiVersion: metallb.io/v1beta1
+kind: BGPAdvertisement
+metadata:
+  name: kiosk-bgp-adv
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - kiosk-vips
+  peers:
+    - edge-router-peer
+
+# If your network uses L2 instead of BGP, apply this object instead of BGPPeer+BGPAdvertisement:
+# ---
+# apiVersion: metallb.io/v1beta1
+# kind: L2Advertisement
+# metadata:
+#   name: kiosk-l2-adv
+#   namespace: metallb-system
+# spec:
+#   ipAddressPools:
+#     - kiosk-vips
